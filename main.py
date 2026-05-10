@@ -169,7 +169,7 @@ def call_gemini(prompt: str) -> dict:
     if not api_key:
         return {"action": "clarify", "reply": "API key not configured.", "query": ""}
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1000}
