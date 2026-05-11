@@ -178,7 +178,7 @@ def call_gemini(prompt: str) -> dict:
 
     for attempt in range(4):
         try:
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload, timeout=60)
             if response.status_code == 429:
                 wait = 2 ** attempt
                 print(f"Rate limited, retrying in {wait}s...")
