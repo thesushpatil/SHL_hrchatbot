@@ -1,11 +1,10 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 import json
 import os
-import re
-import time
-import requests
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -169,29 +168,22 @@ def call_gemini(prompt: str) -> dict:
     if not api_key:
         return {"action": "clarify", "reply": "API key not configured.", "query": ""}
 
-    model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1000}
-    }
-
-    for attempt in range(4):
-        try:
-            response = requests.post(url, json=payload, timeout=60)
-            if response.status_code == 429:
-                wait = 2 ** attempt
-                print(f"Rate limited, retrying in {wait}s...")
-                time.sleep(wait)
-                continue
-            response.raise_for_status()
-            text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-            text = text.strip().replace("```json", "").replace("```", "").strip()
-            return json.loads(text)
-        except Exception as e:
-            print(f"Gemini error (attempt {attempt+1}): {e}")
-            break
-    return {"action": "clarify", "reply": "Service temporarily unavailable. Please try again.", "query": ""}
+    try:
+        client = genai.Client(api_key=api_key)
+        model = "gemini-flash-latest"
+        contents = [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])]
+        
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=1000)
+        )
+        
+        text = response.text.strip().replace("```json", "").replace("```", "").strip()
+        return json.loads(text)
+    except Exception as e:
+        print(f"Gemini error: {e}")
+        return {"action": "clarify", "reply": "Service temporarily unavailable. Please try again.", "query": ""}
 
 
 @app.get("/health")
